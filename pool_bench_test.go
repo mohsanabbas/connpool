@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-func benchmarkFactory() func() (net.Conn, error) {
-	return func() (net.Conn, error) {
+func benchmarkFactory() Factory {
+	return func(context.Context) (net.Conn, error) {
 		return &simulatedConn{}, nil
 	}
 }
@@ -27,7 +27,6 @@ func BenchmarkPoolAcquireRelease(b *testing.B) {
 	}
 
 	for _, tc := range cases {
-		tc := tc
 		b.Run(tc.name, func(b *testing.B) {
 			old := runtime.GOMAXPROCS(tc.procs)
 			defer runtime.GOMAXPROCS(old)
@@ -61,7 +60,6 @@ func BenchmarkPoolLockContentionByParallelism(b *testing.B) {
 	parLevels := []int{1, 2, 4, 8, 16, 32}
 
 	for _, level := range parLevels {
-		level := level
 		b.Run(fmt.Sprintf("parallel-%d", level), func(b *testing.B) {
 			p := NewPool(8, 0, benchmarkFactory())
 			defer func() {
