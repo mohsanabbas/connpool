@@ -23,6 +23,42 @@ It is built for Go services that need connection reuse, hard concurrency limits,
 go get github.com/mohsanabbas/connpool
 ```
 
+## Try It
+
+Run the included end-to-end example with one command. No local Go toolchain required — Docker builds and runs everything.
+
+```bash
+docker compose up --build
+```
+
+This spins up a Valkey container and a Go program that:
+
+- Opens a pool capped at 5 connections
+- Runs 10 concurrent workers, each doing a `SET` then `GET` over raw RESP
+- Validates each idle connection with a `PING` before handing it out
+- Runs a second sequential wave with no new dials to confirm reuse
+
+**How to read the output**
+
+Each log line shows the local TCP port used for the operation. Because the pool is capped at 5, each port appears exactly twice in wave 1 — proof that 10 workers shared 5 sockets, not 10.
+
+```
+dialed new connection 172.18.0.3:54321       ← exactly 5 of these
+[worker-0] port=172.18.0.3:54321  SET ...    ← first borrow
+[worker-5] port=172.18.0.3:54321  SET ...    ← same socket, reused
+...
+--- wave 2: sequential reuse proof ---
+[reuse-0]  port=172.18.0.3:54321  SET ...    ← still same socket, no new dial
+```
+
+The final `stats` line confirms zero leaked connections: `Idle:5 InUse:0`.
+
+**Tear down**
+
+```bash
+docker compose down
+```
+
 ## Usage
 
 ```go

@@ -1,0 +1,17 @@
+services:
+
+  valkey:
+    image: valkey/valkey:latest
+    healthcheck:
+      test: [ "CMD", "valkey-cli", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 15
+
+  example:
+    build: .
+    depends_on:
+      valkey:
+        condition: service_healthy
+    environment:
+      - VALKEY_ADDR=valkey:6379
